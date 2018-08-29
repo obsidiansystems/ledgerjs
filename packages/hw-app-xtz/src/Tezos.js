@@ -17,7 +17,7 @@
 //@flow
 
 // FIXME drop:
-import { splitPath, foreach } from "./utils";
+import { splitPath, foreach, encodePublicKey } from "./utils";
 import type Transport from "@ledgerhq/hw-transport";
 
 /**
@@ -44,10 +44,9 @@ export default class Tezos {
   }
 
   /**
-   * get Tezos address for a given BIP 32 path.
+   * get Tezos public key and address (key hash) for a given BIP 32 path.
    * @param path a path in BIP 32 format, must begin with 44'/1729'
    * @option boolDisplay optionally enable or not the display
-   * @option boolChaincode optionally enable or not the chaincode request
    * @return an object with a publicKey
    * @example
    * tez.getAddress("44'/1729'/0'/0'").then(o => o.address)
@@ -55,11 +54,13 @@ export default class Tezos {
   getAddress(
     path: string,
     boolDisplay?: boolean,
-    curve?: number
+    curve?: number,
   ): Promise<{
-    publicKey: string
+    publicKey: string,
+    address: string,
   }> {
     let paths = splitPath(path);
+    curve = curve ? curve : 0x00; // Defaults to Ed25519
     let buffer = new Buffer(1 + paths.length * 4);
     buffer[0] = paths.length;
     paths.forEach((element, index) => {
@@ -70,16 +71,14 @@ export default class Tezos {
         0x80,
         boolDisplay ? 0x03 : 0x02,
         0,
-        curve ? curve : 0x00, // Defaults to Secp256k1
+        curve,
         buffer
       )
       .then(response => {
-        let result = {};
         let publicKeyLength = response[0];
-        result.publicKey = response
-          .slice(1, 1 + publicKeyLength)
-          .toString("hex");
-        return result;
+        let publicKey = response
+          .slice(1, 1 + publicKeyLength);
+        return encodePublicKey(publicKey, curve);
       });
   }
 
