@@ -103,30 +103,35 @@ export function asyncWhile<T>(
 
 const pkB58Prefix = curve => {
   switch (curve) {
+  // edpk
   case 0x00:
-    // edpk
     return Buffer.of(13, 15, 37, 217);
+  // sppk
   case 0x01:
-    // sppk
     return Buffer.of(3, 254, 226, 86);
+  // p2pk
   case 0x02:
-    // p2pk
     return Buffer.of(3, 178, 139, 127);
   }
 };
 
-const compress = publicKeyBytes =>
-  Buffer.concat([
-    Buffer.of(
-      (publicKeyBytes[publicKeyBytes.length-1] % 2 == 0) ? 0x02 : 0x03
-    ),
-    publicKeyBytes.slice(1, publicKeyBytes.length/2 + 1),
-  ]);
+const compressPublicKey = (publicKeyBytes, curve) => {
+  switch (curve) {
+  // Ed25519
+  case 0x00:
+    return publicKeyBytes.slice(1);
+  // SECP256K1, SECP256R1
+  case 0x01:
+  case 0x02:
+    return Buffer.concat([
+      Buffer.of(0x02 + (publicKeyBytes[64] & 0x01)),
+      publicKeyBytes.slice(1, 33),
+    ]);
+  }
+};
 
 export const publicKeyToString = (publicKeyBytes, curve) =>
   bs58check.encode(Buffer.concat([
     pkB58Prefix(curve),
-    (curve === 0x00)
-      ? publicKeyBytes.slice(1)
-      : compress(publicKeyBytes),
+    compressPublicKey(publicKeyBytes, curve),
   ]));
