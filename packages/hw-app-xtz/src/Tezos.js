@@ -135,7 +135,7 @@ export default class Tezos {
         })
     }
     ).then(() => {
-      let signature = response.slice(1, response.length - 2).toString("hex");
+      let signature = response.slice(0, response.length - 2).toString("hex");
       return { signature };
     });
   }
@@ -147,10 +147,10 @@ export default class Tezos {
       bakingApp: boolean
   }> {
       return this.transport.send(0x80, 0x00, 0x00, 0x00, new Buffer(0)).then(apduResponse => {
-          let major = apduResponse[0];
-          let minor = apduResponse[1];
-          let patch = apduResponse[2];
-          let bakingApp = apduResponse[3] == 1;
+          let bakingApp = apduResponse[0] == 1;
+          let major = apduResponse[1];
+          let minor = apduResponse[2];
+          let patch = apduResponse[3];
           return { major, minor, patch, bakingApp };
       });
   }
