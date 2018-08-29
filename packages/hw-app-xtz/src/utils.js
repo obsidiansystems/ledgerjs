@@ -16,6 +16,8 @@
  ********************************************************************************/
 //@flow
 
+import bs58check from 'bs58check';
+
 type Defer<T> = {
   promise: Promise<T>,
   resolve: T => void,
@@ -98,3 +100,33 @@ export function asyncWhile<T>(
   }
   return Promise.resolve([]).then(iterate);
 }
+
+const pkB58Prefix = curve => {
+  switch (curve) {
+  case 0x00:
+    // edpk
+    return Buffer.of(13, 15, 37, 217);
+  case 0x01:
+    // sppk
+    return Buffer.of(3, 254, 226, 86);
+  case 0x02:
+    // p2pk
+    return Buffer.of(3, 178, 139, 127);
+  }
+};
+
+const compress = publicKeyBytes =>
+  Buffer.concat([
+    Buffer.of(
+      (publicKeyBytes[publicKeyBytes.length-1] % 2 == 0) ? 0x02 : 0x03
+    ),
+    publicKeyBytes.slice(1, publicKeyBytes.length/2 + 1),
+  ]);
+
+export const publicKeyToString = (publicKeyBytes, curve) =>
+  bs58check.encode(Buffer.concat([
+    pkB58Prefix(curve),
+    (curve === 0x00)
+      ? publicKeyBytes.slice(1)
+      : compress(publicKeyBytes),
+  ]));
