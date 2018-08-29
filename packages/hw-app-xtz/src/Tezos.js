@@ -17,7 +17,7 @@
 //@flow
 
 // FIXME drop:
-import { splitPath, foreach, publicKeyToString } from "./utils";
+import { splitPath, foreach, encodePublicKey } from "./utils";
 import type Transport from "@ledgerhq/hw-transport";
 
 /**
@@ -44,11 +44,9 @@ export default class Tezos {
   }
 
   /**
-   * get Tezos address for a given BIP 32 path.
+   * get Tezos public key and address (key hash) for a given BIP 32 path.
    * @param path a path in BIP 32 format, must begin with 44'/1729'
    * @option boolDisplay optionally enable or not the display
-   * @option boolRaw if true, return the pk representation directly
-   *                 from ledger as a hex string, else base58 encode
    * @return an object with a publicKey
    * @example
    * tez.getAddress("44'/1729'/0'/0'").then(o => o.address)
@@ -57,9 +55,9 @@ export default class Tezos {
     path: string,
     boolDisplay?: boolean,
     curve?: number,
-    boolRaw?: boolean,
   ): Promise<{
-    publicKey: string
+    publicKey: string,
+    address: string,
   }> {
     let paths = splitPath(path);
     curve = curve ? curve : 0x00; // Defaults to Ed25519
@@ -77,14 +75,10 @@ export default class Tezos {
         buffer
       )
       .then(response => {
-        let result = {};
         let publicKeyLength = response[0];
         let publicKey = response
           .slice(1, 1 + publicKeyLength);
-        result.publicKey = boolRaw
-          ? publicKey.toString("hex")
-          : publicKeyToString(publicKey, curve);
-        return result;
+        return encodePublicKey(publicKey, curve);
       });
   }
 
