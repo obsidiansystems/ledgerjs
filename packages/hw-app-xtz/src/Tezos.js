@@ -79,11 +79,11 @@ export default class Tezos {
       .then(response => {
         let result = {};
         let publicKeyLength = response[0];
-        let publicKeyBytes = response
+        let publicKey = response
           .slice(1, 1 + publicKeyLength);
         result.publicKey = boolRaw
-          ? publicKeyBytes.toString("hex")
-          : publicKeyToString(publicKeyBytes, curve);
+          ? publicKey.toString("hex")
+          : publicKeyToString(publicKey, curve);
         return result;
       });
   }

@@ -115,23 +115,23 @@ const pkB58Prefix = curve => {
   }
 };
 
-const compressPublicKey = (publicKeyBytes, curve) => {
+const compressPublicKey = (publicKey, curve) => {
   switch (curve) {
   // Ed25519
   case 0x00:
-    return publicKeyBytes.slice(1);
+    return publicKey.slice(1);
   // SECP256K1, SECP256R1
   case 0x01:
   case 0x02:
     return Buffer.concat([
-      Buffer.of(0x02 + (publicKeyBytes[64] & 0x01)),
-      publicKeyBytes.slice(1, 33),
+      Buffer.of(0x02 + (publicKey[64] & 0x01)),
+      publicKey.slice(1, 33),
     ]);
   }
 };
 
-export const publicKeyToString = (publicKeyBytes, curve) =>
+export const publicKeyToString = (publicKey, curve) =>
   bs58check.encode(Buffer.concat([
     pkB58Prefix(curve),
-    compressPublicKey(publicKeyBytes, curve),
+    compressPublicKey(publicKey, curve),
   ]));
