@@ -4,7 +4,7 @@ import type Transport from "@ledgerhq/hw-transport";
 import BIPPath from "bip32-path";
 
 /**
- * Nervos API
+ * Avalanche API
  *
  * @example
  * import Avalanche from "@ledgerhq/hw-app-avalanche";
@@ -61,7 +61,7 @@ export default class Avalanche {
    * @param path a path in BIP 32 format
    * @return an object with a publicKey
    * @example
-   * const result = await ckb.getWalletPublicKey("44'/144'/0'/0/0");
+   * const result = await avalanche.getWalletPublicKey("44'/9000'/0'/0/0");
    * const publicKey = result;
    */
   async getWalletExtendedPublicKey(path: string): Promise<string> {
@@ -89,7 +89,7 @@ export default class Avalanche {
   }
 
   /**
-   * Sign a Nervos transaction with a given BIP 32 path
+   * Sign an Avalanche transaction with a given BIP 32 path
    *
    * @param path a path in BIP 32 format
    * @param rawTxHex transaction to sign
@@ -144,7 +144,7 @@ export default class Avalanche {
   }
 
   /**
-   * Get the version of the Nervos app installed on the hardware device
+   * Get the version of the Avalanche app installed on the hardware device
    *
    * @return an object with a version
    * @example
