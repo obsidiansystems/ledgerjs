@@ -56,6 +56,39 @@ export default class Avalanche {
   }
 
   /**
+   * get extended public key for a given BIP 32 path.
+   *
+   * @param path a path in BIP 32 format
+   * @return an object with a publicKey
+   * @example
+   * const result = await ckb.getWalletPublicKey("44'/144'/0'/0/0");
+   * const publicKey = result;
+   */
+  async getWalletExtendedPublicKey(path: string): Promise<string> {
+    const bipPath = BIPPath.fromString(path).toPathArray();
+
+    const cla = 0x80;
+    const ins = 0x04;
+    const p1 = 0x00;
+    const p2 = 0x00;
+    const data = Buffer.alloc(1 + bipPath.length * 4);
+
+    data.writeUInt8(bipPath.length, 0);
+    bipPath.forEach((segment, index) => {
+      data.writeUInt32BE(segment, 1 + index * 4);
+    });
+
+    const response = await this.transport.send(cla, ins, p1, p2, data);
+    const publicKeyLength = response[0];
+    const chainCodeOffset = 2+publicKeyLength;
+    const chainCodeLength = response[1+publicKeyLength];
+    return {
+      public_key: response.slice(1, 1 + publicKeyLength).toString("hex"),
+      chain_code: response.slice(chainCodeOffset, chainCodeOffset+chainCodeLength)
+    };
+  }
+
+  /**
    * Sign a Nervos transaction with a given BIP 32 path
    *
    * @param path a path in BIP 32 format
