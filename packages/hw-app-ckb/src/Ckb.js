@@ -277,13 +277,10 @@ export default class Ckb {
     const response1 = await this.transport.send(0x80, 0x00, 0x00, 0x00);
     const response2 = await this.transport.send(0x80, 0x09, 0x00, 0x00);
 
-    const result = {};
-    result.version =
-      "" + response1[0] + "." + response1[1] + "." + response1[2];
-
-    result.hash = response2.slice(0, -3).toString("latin1"); # last 3 bytes should be 0x009000
-
-    return result;
+    return {
+      version: "" + response1[0] + "." + response1[1] + "." + response1[2],
+      hash: response2.slice(0, -3).toString("latin1") // last 3 bytes should be 0x009000
+    };
   }
 
   /**
