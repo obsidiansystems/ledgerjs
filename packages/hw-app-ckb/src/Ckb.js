@@ -280,7 +280,8 @@ export default class Ckb {
     const result = {};
     result.version =
       "" + response1[0] + "." + response1[1] + "." + response1[2];
-    result.hash = response2.toString("hex");
+
+    result.hash = response2.slice(0, -3).toString("latin1"); # last 3 bytes should be 0x009000
 
     return result;
   }
