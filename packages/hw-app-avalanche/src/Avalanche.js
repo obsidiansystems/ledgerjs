@@ -137,10 +137,16 @@ export default class Avalanche {
     let lastData = rawTx.slice(lastOffset, lastOffset+this.MAX_APDU_SIZE);
     let response = await this.transport.send(0x80, this.INS_SIGN_HASH, 0x81, 0x00, lastData);
     let resp = Buffer.from(response,"hex");
-    return {
-      hash: resp.slice(0,32),
-      signature: resp.slice(32,-2),
+
+    const respHash = resp.slice(0, 32);
+    if (respHash != hash) {
+      throw "Signed hash does not match input hash!";
     }
+
+    return {
+      hash: respHash,
+      signature: resp.slice(32, -2),
+    };
   }
 
   /**
