@@ -16,11 +16,10 @@ export default class Avalanche {
   MAX_APDU_SIZE = 230;
 
   INS_VERSION = 0x00;
-  INS_GIT = 0x01;
-  INS_GET_WALLET_ID = 0x02;
-  INS_PROMPT_PUBLIC_KEY = 0x03;
-  INS_PROMPT_EXT_PUBLIC_KEY = 0x04;
-  INS_SIGN_HASH = 0x05;
+  INS_GET_WALLET_ID = 0x01;
+  INS_PROMPT_PUBLIC_KEY = 0x02;
+  INS_PROMPT_EXT_PUBLIC_KEY = 0x03;
+  INS_SIGN_HASH = 0x04;
 
   constructor(transport: Transport<*>, scrambleKey: string = "Avalanche") {
     this.transport = transport;
@@ -142,22 +141,44 @@ export default class Avalanche {
    *
    * {
    *   "version": "1.0.3",
-   *   "hash": "0000000000000000000000000000000000000000"
+   *   "commit": "0000000000000000000000000000000000000000"
+   *   "name": "Avax"
    * }
    */
   async getAppConfiguration(): Promise<{
     version: string,
-    hash: string
+    commit: string,
+    name: string
   }> {
-    const version = await this.transport.send(0x80, this.INS_VERSION, 0x00, 0x00);
-    const hash = await this.transport.send(0x80, this.INS_GIT, 0x00, 0x00);
+    const data: Buffer = await this.transport.send(0x80, this.INS_VERSION, 0x00, 0x00);
+    console.log(data);
 
-    const result = {};
-    result.version =
-      "" + version[0] + "." + version[1] + "." + version[2];
-    result.hash = hash.toString("hex");
+    const eatNBytes = function(input, n) {
+      const out = input.slice(0, 3);
+      return [out, input.slice(3)];
+    };
 
-    return result;
+    const eatWhile = function(input, f) {
+      for (var i = 0; i < input.length; i++) {
+        if (!f(input[i])) {
+          return [input.slice(0, i), input.slice(i)];
+        }
+      }
+      return [input, ""];
+    };
+
+    const [versionData, rest1] = eatNBytes(data, 3);
+    const [commitData, rest2] = eatWhile(rest1, c => c != 0);
+    const [nameData, rest3] = eatWhile(rest2.slice(1), c => c != 0);
+    if (rest3.toString("hex") != "009000") {
+      console.log("WARNING: Response data does not exactly match expected format for VERSION instruction");
+    }
+
+    return {
+      version: "" + versionData[0] + "." + versionData[1] + "." + versionData[2],
+      commit: commitData.toString("latin1"),
+      name: nameData.toString("latin1")
+    };
   }
 
   /**
