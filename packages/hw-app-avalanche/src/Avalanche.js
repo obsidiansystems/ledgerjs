@@ -127,16 +127,16 @@ export default class Avalanche {
     });
     await this.transport.send(0x80, this.INS_SIGN_HASH, 0x00, 0x00, rawPath);
 
-    let txFullChunks = Math.floor(rawTx.length / this.MAX_APDU_SIZE);
+    const txFullChunks = Math.floor(rawTx.length / this.MAX_APDU_SIZE);
     for (let i = 0; i < txFullChunks; i++) {
-      let data = rawTx.slice(i*this.MAX_APDU_SIZE, (i+1)*this.MAX_APDU_SIZE);
+      const data = rawTx.slice(i*this.MAX_APDU_SIZE, (i+1)*this.MAX_APDU_SIZE);
       await this.transport.send(0x80, this.INS_SIGN_HASH, 0x01, 0x00, data);
     }
 
-    let lastOffset = Math.floor(rawTx.length / this.MAX_APDU_SIZE) * this.MAX_APDU_SIZE;
-    let lastData = rawTx.slice(lastOffset, lastOffset+this.MAX_APDU_SIZE);
-    let response = await this.transport.send(0x80, this.INS_SIGN_HASH, 0x81, 0x00, lastData);
-    let resp = Buffer.from(response,"hex");
+    const lastOffset = Math.floor(rawTx.length / this.MAX_APDU_SIZE) * this.MAX_APDU_SIZE;
+    const lastData = rawTx.slice(lastOffset, lastOffset+this.MAX_APDU_SIZE);
+    const response = await this.transport.send(0x80, this.INS_SIGN_HASH, 0x81, 0x00, lastData);
+    const resp = Buffer.from(response, "hex");
 
     const respHash = resp.slice(0, 32);
     if (respHash != hash) {
