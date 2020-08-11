@@ -137,7 +137,7 @@ export default class Avalanche {
     const response = await this.transport.send(0x80, this.INS_SIGN_HASH, 0x81, 0x00, lastData);
 
     const responseHash = response.slice(0, 32);
-    if (responseHash != hash) {
+    if (!responseHash.equals(hash)) {
       throw "Signed hash does not match input hash!";
     }
 
