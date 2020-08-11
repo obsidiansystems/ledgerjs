@@ -166,11 +166,10 @@ export default class Avalanche {
     name: string
   }> {
     const data: Buffer = await this.transport.send(0x80, this.INS_VERSION, 0x00, 0x00);
-    console.log(data);
 
     const eatNBytes = function(input, n) {
-      const out = input.slice(0, 3);
-      return [out, input.slice(3)];
+      const out = input.slice(0, n);
+      return [out, input.slice(n)];
     };
 
     const eatWhile = function(input, f) {
