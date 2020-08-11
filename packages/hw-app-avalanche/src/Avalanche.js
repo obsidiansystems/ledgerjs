@@ -206,7 +206,7 @@ export default class Avalanche {
    * "0x69c46b6dd072a2693378ef4f5f35dcd82f826dc1fdcc891255db5870f54b06e6"
    */
   async getWalletId(): Promise<Buffer> {
-    const response = await this.transport.send(0x80, this.INS_GET_WALLET_ID, 0x00, 0x00);
+    const result = await this.transport.send(0x80, this.INS_GET_WALLET_ID, 0x00, 0x00);
 
     return result.slice(0,-2);
   }
