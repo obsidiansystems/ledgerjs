@@ -143,8 +143,7 @@ export default class Avalanche {
         hash,
         encodeBip32Path(derivationPathPrefix)
       ]);
-      const responseHash = await this.transport.send(this.CLA, this.INS_SIGN_HASH, 0x00, 0x00, firstMessage)
-        .catch(e => console.error("Ledger error: ", e));
+      const responseHash = await this.transport.send(this.CLA, this.INS_SIGN_HASH, 0x00, 0x00, firstMessage);
       if (!responseHash.slice(0, 32).equals(hash)) {
         throw "Ledger reported a hash that does not match the input hash!";
       }
@@ -155,8 +154,7 @@ export default class Avalanche {
       const suffix = derivationPathSuffixes[ix];
       const message: Buffer = encodeBip32Path(suffix);
       const isLastMessage: Boolean = ix >= derivationPathSuffixes.length - 1;
-      const signatureData = await this.transport.send(this.CLA, this.INS_SIGN_HASH, isLastMessage ? 0x81 : 0x01, 0x00, message)
-        .catch(e => console.error("Ledger error: ", e));
+      const signatureData = await this.transport.send(this.CLA, this.INS_SIGN_HASH, isLastMessage ? 0x81 : 0x01, 0x00, message);
       resultMap.set(suffix.toString(true), signatureData.slice(0, -2));
     };
     return resultMap;
