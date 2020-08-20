@@ -15,6 +15,7 @@ export default class Avalanche {
 
   CLA = 0x80;
   MAX_APDU_SIZE = 230;
+  MAX_HRP_LENGTH = 24;
 
   INS_VERSION = 0x00;
   INS_GET_WALLET_ID = 0x01;
@@ -45,16 +46,22 @@ export default class Avalanche {
    * const result = await avalanche.getWalletPublicKey("44'/9000'/0'/0/0");
    * const publicKey = result;
    */
-  async getWalletPublicKey(derivation_path: string): Promise<Buffer> {
+  async getWalletAddress(derivation_path: string, hrp = ""): Promise<Buffer> {
+    if (hrp.length > this.MAX_HRP_LENGTH) {
+      throw "maximum Bech32 'human readable part' length exceeded";
+    }
+
     const cla = this.CLA;
     const ins = this.INS_PROMPT_PUBLIC_KEY;
-    const p1 = 0x00;
+    const p1 = hrp.length;
     const p2 = 0x00;
-    const data: Buffer = this.encodeBip32Path(BIPPath.fromString(derivation_path));
+    const data = Buffer.concat([
+      Buffer.from(hrp, "latin1"),
+      this.encodeBip32Path(BIPPath.fromString(derivation_path)),
+    ]);
 
     const response = await this.transport.send(cla, ins, p1, p2, data);
-    const publicKeyLength = response[0];
-    return response.slice(1, 1 + publicKeyLength);
+    return response.slice(0, -2);
   }
 
   /**
