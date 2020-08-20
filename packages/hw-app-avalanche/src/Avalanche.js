@@ -46,18 +46,11 @@ export default class Avalanche {
    * const publicKey = result;
    */
   async getWalletPublicKey(derivation_path: string): Promise<Buffer> {
-    const bipPath = BIPPath.fromString(derivation_path).toPathArray();
-
     const cla = this.CLA;
     const ins = this.INS_PROMPT_PUBLIC_KEY;
     const p1 = 0x00;
     const p2 = 0x00;
-    const data = Buffer.alloc(1 + bipPath.length * 4);
-
-    data.writeUInt8(bipPath.length, 0);
-    bipPath.forEach((segment, index) => {
-      data.writeUInt32BE(segment, 1 + index * 4);
-    });
+    const data: Buffer = this.encodeBip32Path(BIPPath.fromString(derivation_path));
 
     const response = await this.transport.send(cla, ins, p1, p2, data);
     const publicKeyLength = response[0];
@@ -77,18 +70,11 @@ export default class Avalanche {
     public_key: Buffer,
     chain_code: Buffer
   }> {
-    const bipPath = BIPPath.fromString(derivation_path).toPathArray();
-
     const cla = this.CLA;
     const ins = this.INS_PROMPT_EXT_PUBLIC_KEY;
     const p1 = 0x00;
     const p2 = 0x00;
-    const data = Buffer.alloc(1 + bipPath.length * 4);
-
-    data.writeUInt8(bipPath.length, 0);
-    bipPath.forEach((segment, index) => {
-      data.writeUInt32BE(segment, 1 + index * 4);
-    });
+    const data: Buffer = this.encodeBip32Path(BIPPath.fromString(derivation_path));
 
     const response = await this.transport.send(cla, ins, p1, p2, data);
     const publicKeyLength = response[0];
@@ -109,50 +95,31 @@ export default class Avalanche {
    * @param hash hex-encoded hash to sign
    * @return an signature object
    * @example
-   * const signature = await avalanche.signHash("44'/9000'/0'/0/0", "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+   * const signature = await avalanche.signHash("44'/9000'/0'", ["0/0"], "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
    */
   async signHash(
     derivationPathPrefix: BIPPath,
     derivationPathSuffixes: Array<BIPPath>,
     hash: Buffer,
   ): Promise<Map<string, Buffer>> {
-    const uInt8Buffer: Buffer = uint8 => {
-      let buff: Buffer = Buffer.alloc(1);
-      buff.writeUInt8(uint8);
-      return buff;
-    };
+    if (hash.length != 32) {
+      throw "Hash buffer must be 32 bytes";
+    }
 
-    const uInt32BEBuffer: Buffer = uint32 => {
-      let buff: Buffer = Buffer.alloc(4);
-      buff.writeUInt32BE(uint32);
-      return buff;
-    };
-
-    const encodeBip32Path: Buffer = (path: BIPPath) => {
-      const pathArr = path.toPathArray();
-      return Buffer.concat([uInt8Buffer(pathArr.length)].concat(pathArr.map(uInt32BEBuffer)));
-    };
-
-    {
-      if (hash.length != 32) {
-        throw "Hash buffer must be 32 bytes";
-      }
-
-      const firstMessage: Buffer = Buffer.concat([
-        uInt8Buffer(derivationPathSuffixes.length),
-        hash,
-        encodeBip32Path(derivationPathPrefix)
-      ]);
-      const responseHash = await this.transport.send(this.CLA, this.INS_SIGN_HASH, 0x00, 0x00, firstMessage);
-      if (!responseHash.slice(0, 32).equals(hash)) {
-        throw "Ledger reported a hash that does not match the input hash!";
-      }
+    const firstMessage: Buffer = Buffer.concat([
+      this.uInt8Buffer(derivationPathSuffixes.length),
+      hash,
+      this.encodeBip32Path(derivationPathPrefix)
+    ]);
+    const responseHash = await this.transport.send(this.CLA, this.INS_SIGN_HASH, 0x00, 0x00, firstMessage);
+    if (!responseHash.slice(0, 32).equals(hash)) {
+      throw "Ledger reported a hash that does not match the input hash!";
     }
 
     let resultMap: Map<string, Buffer> = new Map();
     for (let ix = 0; ix < derivationPathSuffixes.length; ix++) {
       const suffix = derivationPathSuffixes[ix];
-      const message: Buffer = encodeBip32Path(suffix);
+      const message: Buffer = this.encodeBip32Path(suffix);
       const isLastMessage: Boolean = ix >= derivationPathSuffixes.length - 1;
       const signatureData = await this.transport.send(this.CLA, this.INS_SIGN_HASH, isLastMessage ? 0x81 : 0x01, 0x00, message);
       resultMap.set(suffix.toString(true), signatureData.slice(0, -2));
@@ -219,6 +186,24 @@ export default class Avalanche {
    */
   async getWalletId(): Promise<Buffer> {
     const result = await this.transport.send(this.CLA, this.INS_GET_WALLET_ID, 0x00, 0x00);
-    return result.slice(0,-2);
+    return result.slice(0, -2);
+  }
+
+
+  uInt8Buffer(uint8: int): Buffer {
+    let buff = Buffer.alloc(1);
+    buff.writeUInt8(uint8);
+    return buff;
+  }
+
+  uInt32BEBuffer(uint32: int): Buffer {
+    let buff = Buffer.alloc(4);
+    buff.writeUInt32BE(uint32);
+    return buff;
+  }
+
+  encodeBip32Path(path: BIPPath): Buffer {
+    const pathArr = path.toPathArray();
+    return Buffer.concat([this.uInt8Buffer(pathArr.length)].concat(pathArr.map(this.uInt32BEBuffer)));
   }
 }
