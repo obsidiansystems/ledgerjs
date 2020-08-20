@@ -30,7 +30,7 @@ export default class Avalanche {
         "getAppConfiguration",
         "getWalletId",
         "getWalletPublicKey",
-        "signTransaction"
+        "signHash"
       ],
       scrambleKey
     );
