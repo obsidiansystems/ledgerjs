@@ -12,6 +12,7 @@ import BIPPath from "bip32-path";
  */
 export default class Avalanche {
   transport: Transport<*>;
+  logger: (msg: string) => undefined;
 
   CLA = 0x80;
   MAX_APDU_SIZE = 230;
@@ -23,8 +24,13 @@ export default class Avalanche {
   INS_PROMPT_EXT_PUBLIC_KEY = 0x03;
   INS_SIGN_HASH = 0x04;
 
-  constructor(transport: Transport<*>, scrambleKey: string = "Avalanche") {
+  constructor(
+    transport: Transport<*>,
+    scrambleKey: string = "Avalanche",
+    logger: (msg: string) => undefined = console.error,
+  ) {
     this.transport = transport;
+    this.logger = logger;
     transport.decorateAppAPIMethods(
       this,
       [
@@ -75,7 +81,7 @@ export default class Avalanche {
    */
   async getWalletExtendedPublicKey(derivation_path: string): Promise<{
     public_key: Buffer,
-    chain_code: Buffer
+    chain_code: Buffer,
   }> {
     const cla = this.CLA;
     const ins = this.INS_PROMPT_EXT_PUBLIC_KEY;
@@ -102,7 +108,10 @@ export default class Avalanche {
    * @param hash hex-encoded hash to sign
    * @return an signature object
    * @example
-   * const signature = await avalanche.signHash("44'/9000'/0'", ["0/0"], "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+   * const signatures = await avalanche.signHash(
+   *   BIPPath.fromString("44'/9000'/0'"),
+   *   [BIPPath.fromString("0/0")],
+   *   Buffer.from("0000000000000000000000000000000000000000000000000000000000000000", "hex"));
    */
   async signHash(
     derivationPathPrefix: BIPPath,
@@ -126,6 +135,7 @@ export default class Avalanche {
     let resultMap: Map<string, Buffer> = new Map();
     for (let ix = 0; ix < derivationPathSuffixes.length; ix++) {
       const suffix = derivationPathSuffixes[ix];
+      this.logger("Signing with " + suffix.toString(true));
       const message: Buffer = this.encodeBip32Path(suffix);
       const isLastMessage: Boolean = ix >= derivationPathSuffixes.length - 1;
       const signatureData = await this.transport.send(this.CLA, this.INS_SIGN_HASH, isLastMessage ? 0x81 : 0x01, 0x00, message);
@@ -150,7 +160,7 @@ export default class Avalanche {
   async getAppConfiguration(): Promise<{
     version: string,
     commit: string,
-    name: string
+    name: string,
   }> {
     const data: Buffer = await this.transport.send(this.CLA, this.INS_VERSION, 0x00, 0x00);
 
@@ -172,7 +182,7 @@ export default class Avalanche {
     const [commitData, rest2] = eatWhile(rest1, c => c != 0);
     const [nameData, rest3] = eatWhile(rest2.slice(1), c => c != 0);
     if (rest3.toString("hex") != "009000") {
-      console.error("WARNING: Response data does not exactly match expected format for VERSION instruction");
+      this.logger("WARNING: Response data does not exactly match expected format for VERSION instruction");
     }
 
     return {
