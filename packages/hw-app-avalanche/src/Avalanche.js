@@ -116,14 +116,12 @@ export default class Avalanche {
    */
   async signHash(
     derivation_path: string,
-    hash: string
+    hash: Buffer,
   ): Promise<{
     hash: Buffer,
     signature: Buffer
   }> {
     const bipPath = BIPPath.fromString(derivation_path).toPathArray();
-    // TODO: It would be nice to have either Buffer or string as parameter
-    const rawTx = Buffer.from(hash, "hex");
 
     let rawPath = Buffer.alloc(1 + bipPath.length * 4);
     rawPath.writeInt8(bipPath.length, 0);
@@ -132,14 +130,14 @@ export default class Avalanche {
     });
     await this.transport.send(0x80, this.INS_SIGN_HASH, 0x00, 0x00, rawPath);
 
-    const txFullChunks = Math.floor(rawTx.length / this.MAX_APDU_SIZE);
+    const txFullChunks = Math.floor(hash.length / this.MAX_APDU_SIZE);
     for (let i = 0; i < txFullChunks; i++) {
-      const data = rawTx.slice(i*this.MAX_APDU_SIZE, (i+1)*this.MAX_APDU_SIZE);
+      const data = hash.slice(i*this.MAX_APDU_SIZE, (i+1)*this.MAX_APDU_SIZE);
       await this.transport.send(0x80, this.INS_SIGN_HASH, 0x01, 0x00, data);
     }
 
-    const lastOffset = Math.floor(rawTx.length / this.MAX_APDU_SIZE) * this.MAX_APDU_SIZE;
-    const lastData = rawTx.slice(lastOffset, lastOffset+this.MAX_APDU_SIZE);
+    const lastOffset = Math.floor(hash.length / this.MAX_APDU_SIZE) * this.MAX_APDU_SIZE;
+    const lastData = hash.slice(lastOffset, lastOffset+this.MAX_APDU_SIZE);
     const response = await this.transport.send(0x80, this.INS_SIGN_HASH, 0x81, 0x00, lastData);
 
     const responseHash = response.slice(0, 32);
