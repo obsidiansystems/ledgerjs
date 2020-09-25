@@ -1091,7 +1091,10 @@ export function SerializeCellOutput(value) {
   const buffers = [];
   buffers.push(SerializeUint64(value.capacity));
   buffers.push(SerializeScript(value.lock));
-  buffers.push(SerializeScriptOpt(value.type_));
+  if (value.type)
+    buffers.push(SerializeScriptOpt(value.type));
+  else
+    buffers.push(SerializeScriptOpt(value.type_));
   return serializeTable(buffers);
 }
 
